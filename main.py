@@ -12,6 +12,21 @@ import torchvision.transforms as transforms
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torch.backends.cudnn as cudnn
+
+import os
+import argparse
+
+from models import *
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+# 0. 从 shell 指定参数
+parser = argparse.ArgumentParser(description='PyTorch CIFAR10')
+parser.add_argument('--lr', default=0.001, type=float, help='learning rate')
+parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
+args = parser.parse_args()
+
 
 # 1. 载入并标准化 CIFAR10 数据
 transform = transforms.Compose(
@@ -30,43 +45,41 @@ classes = ('plane','car','bird','cat', 'deer', 'dog', 'frog', 'horse', 'ship', '
 
 # 2. 定义卷积神经网络
 
-import torch.nn as nn
-import torch.nn.functional as F
+net = LeNet()
 
+# 是否使用 GPU
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+if device == 'cuda':
+    net = torch.nn.DataParallel(net)
+    cudnn.benchmark = True
 
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(3, 6, 5)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16 * 5 * 5, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
+# 从断点继续训练或者重新训练
+start_epoch = 0
+best_acc = 0
 
-    def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(-1, 16 * 5 * 5)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
+if args.resume:
+    print('==> Resuming from checkpoint..')
+    assert os.path.isdir('checkpoint'), 'Error : no checkpoint directory found!'
+    checkpoint = torch.load('./checkpoint/ckpt.pth')
+    net.load_state_dict(checkpoint['net'])
+    best_acc = checkpoint['acc']
+    start_epoch = checkpoint['epoch'] + 1
 
-
-net = Net()
 
 # 3. 定义损失函数和优化器
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9)
 
 # 4. 训练神经网络
-for epoch in range(2):  # loop over the dataset multiple times
+def train(epoch):
     running_loss = 0.0
+    net.train()    # 这条代码似乎也不需要...
     for i, data in enumerate(trainloader, 0):
         # get the inputs; data is a list of [inputs, labels]
         inputs, labels = data
+
+        inputs, labels = inputs.to(device), labels.to(device)  # 在使用cpu的时候这条行代码自动忽略
 
         # 清零梯度缓存 zero the parameter gradients
         optimizer.zero_grad()
@@ -84,27 +97,60 @@ for epoch in range(2):  # loop over the dataset multiple times
                   (epoch + 1, i + 1, running_loss / 2000))
             running_loss = 0.0
 
-print('Finished Training')
 
 # 5. 测试网络
-dataiter = iter(testloader)
-images, labels = dataiter.next()
+def test(epoch):
+    global best_acc
+    net.eval()  # 这条语句似乎也不需要..
+    dataiter = iter(testloader)
+    images, labels = dataiter.next()
 
-outputs = net(images)
+    images, labels = images.to(device), labels.to(device)  # 在使用cpu时候系统自动忽略这条代码
 
-class_correct = list(0. for i in range(10))
-class_total = list(0. for i in range(10))
-with torch.no_grad():
-    for data in testloader:
-        images, labels = data
-        outputs = net(images)
-        _, predicted = torch.max(outputs, 1)
-        c = (predicted == labels).squeeze()
-        for i in range(4):
-            label = labels[i]
-            class_correct[label] += c[i].item()
-            class_total[label] += 1
+    outputs = net(images)
 
-    for i in range(10):
-        print("Accuracy of %5s : %2d %%" % (
-            classes[i], 100 * class_correct[i] / class_total[i]))
+    class_correct = list(0. for i in range(10))
+    class_total = list(0. for i in range(10))
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for data in testloader:
+            images, labels = data
+            outputs = net(images)
+            _, predicted = torch.max(outputs, 1)
+            c = (predicted == labels).squeeze()
+            for i in range(4):
+                label = labels[i]
+                class_correct[label] += c[i].item()
+                class_total[label] += 1
+
+        for i in range(10):
+            correct += class_correct[i]
+            total += class_total[i]
+            # 输出每类识别准确率
+            # print("Accuracy of %5s : %2d %%" % (
+            #     classes[i], 100 * class_correct[i] / class_total[i]))
+        acc = 100 * correct / total
+        # 输出总准确率
+        print("Accuracy of whole dataset: %.2f %%" % acc)
+
+
+    # save checkpoint
+    if acc > best_acc:
+        print('Saving..')
+        state = {
+            'net':net.state_dict(),
+            'acc':acc,
+            'epoch':epoch,
+        }
+        if not os.path.isdir('checkpoint'):
+            os.mkdir('checkpoint')
+        torch.save(state, './checkpoint/ckpt.pth')
+        best_acc = acc
+        print('Saving success!')
+
+
+
+for epoch in range(start_epoch, start_epoch+2):
+    train(epoch)
+    test(epoch)
