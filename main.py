@@ -19,14 +19,13 @@ import argparse
 
 from models import *
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
 # 0. 从 shell 指定参数
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10')
 parser.add_argument('--lr', default=0.001, type=float, help='learning rate')
-parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
+parser.add_argument('--resume', '-r', default=False, action='store_true', help='resume from checkpoint')
 args = parser.parse_args()
 
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # 1. 载入并标准化 CIFAR10 数据
 transform = transforms.Compose(
@@ -45,10 +44,11 @@ classes = ('plane','car','bird','cat', 'deer', 'dog', 'frog', 'horse', 'ship', '
 
 # 2. 定义卷积神经网络
 
-net = LeNet()
-
+#net = LeNet()
+net = VGG('VGG16')
+print(net.__name__ + ' is ready!')
 # 是否使用 GPU
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 if device == 'cuda':
     net = torch.nn.DataParallel(net)
     cudnn.benchmark = True
@@ -57,10 +57,10 @@ if device == 'cuda':
 start_epoch = 0
 best_acc = 0
 
-if args.resume:
+if args.resume==True:
     print('==> Resuming from checkpoint..')
-    assert os.path.isdir('checkpoint'), 'Error : no checkpoint directory found!'
-    checkpoint = torch.load('./checkpoint/ckpt.pth')
+    assert os.path.isdir('checkpoint/'+net.__name__), 'Error : no checkpoint directory found!'
+    checkpoint = torch.load('./checkpoint/'+net.__name__+'/ckpt.pth')
     net.load_state_dict(checkpoint['net'])
     best_acc = checkpoint['acc']
     start_epoch = checkpoint['epoch'] + 1
@@ -69,7 +69,7 @@ if args.resume:
 # 3. 定义损失函数和优化器
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9)
+optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
 
 # 4. 训练神经网络
 def train(epoch):
@@ -102,12 +102,9 @@ def train(epoch):
 def test(epoch):
     global best_acc
     net.eval()  # 这条语句似乎也不需要..
-    dataiter = iter(testloader)
-    images, labels = dataiter.next()
-
-    images, labels = images.to(device), labels.to(device)  # 在使用cpu时候系统自动忽略这条代码
-
-    outputs = net(images)
+    # dataiter = iter(testloader)
+    # images, labels = dataiter.next()
+    # outputs = net(images)
 
     class_correct = list(0. for i in range(10))
     class_total = list(0. for i in range(10))
@@ -116,6 +113,7 @@ def test(epoch):
     with torch.no_grad():
         for data in testloader:
             images, labels = data
+            images, labels = images.to(device), labels.to(device)
             outputs = net(images)
             _, predicted = torch.max(outputs, 1)
             c = (predicted == labels).squeeze()
@@ -137,20 +135,20 @@ def test(epoch):
 
     # save checkpoint
     if acc > best_acc:
-        print('Saving..')
+        print('Acc > best_acc, Saving net, acc')
         state = {
             'net':net.state_dict(),
             'acc':acc,
             'epoch':epoch,
         }
-        if not os.path.isdir('checkpoint'):
-            os.mkdir('checkpoint')
-        torch.save(state, './checkpoint/ckpt.pth')
+        if not os.path.isdir('checkpoint/'+net.__name__):
+            os.mkdir('checkpoint/'+net.__name__)
+        torch.save(state, './checkpoint/'+net.__name__+'/ckpt.pth')
         best_acc = acc
         print('Saving success!')
 
 
 
-for epoch in range(start_epoch, start_epoch+2):
+for epoch in range(start_epoch, start_epoch+8):
     train(epoch)
     test(epoch)

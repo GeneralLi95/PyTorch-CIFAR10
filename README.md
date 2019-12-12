@@ -4,5 +4,15 @@
 
 实验记录:
 
-
-
+ Epoch | 1 | 2 | 4 |8 |16
+ :--- :|:---: |:---:|:---:|:---:|:---:
+ LeNet|48.09%|54.10%|60.82%|60.93%|62.78%
+ VGG16|59.31%|69.14%|79.33%|83.44%
+ 
+ 
+ 论文链接:
+ 
+ 模型|层数 | 论文链接 |发表时间|Google学术引用数(2019.12)
+ :---:|:---:| :---:|:---:|:---:
+ LeNet|5|[Gradient-Based Learning Applied to Document Recognition](http://yann.lecun.com/exdb/publis/pdf/lecun-01a.pdf)|1998|23110
+VGG|16|[Very Deep Convolutional Networks for Large-Scale Image Recognition](https://arxiv.org/pdf/1409.1556.pdf%20http://arxiv.org/abs/1409.1556.pdf) |ICLR 2015|31319
