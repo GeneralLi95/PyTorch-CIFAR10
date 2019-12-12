@@ -46,9 +46,13 @@ classes = ('plane','car','bird','cat', 'deer', 'dog', 'frog', 'horse', 'ship', '
 
 #net = LeNet()
 net = VGG('VGG16')
-print(net.__name__ + ' is ready!')
-# 是否使用 GPU
 
+# 使用GPU时 当经过torch.nn.DataParallel(net)  后  net.__name__会报错， 所以提前指定 model_name代替该值
+model_name = net.__name__
+print(model_name + ' is ready!')
+
+
+# 是否使用 GPU
 if device == 'cuda':
     net = torch.nn.DataParallel(net)
     cudnn.benchmark = True
@@ -59,8 +63,8 @@ best_acc = 0
 
 if args.resume==True:
     print('==> Resuming from checkpoint..')
-    assert os.path.isdir('checkpoint/'+net.__name__), 'Error : no checkpoint directory found!'
-    checkpoint = torch.load('./checkpoint/'+net.__name__+'/ckpt.pth')
+    assert os.path.isdir('checkpoint/'+ model_name), 'Error : no checkpoint directory found!'
+    checkpoint = torch.load('./checkpoint/'+ model_name+'/ckpt.pth')
     net.load_state_dict(checkpoint['net'])
     best_acc = checkpoint['acc']
     start_epoch = checkpoint['epoch'] + 1
@@ -141,9 +145,9 @@ def test(epoch):
             'acc':acc,
             'epoch':epoch,
         }
-        if not os.path.isdir('checkpoint/'+net.__name__):
-            os.mkdir('checkpoint/'+net.__name__)
-        torch.save(state, './checkpoint/'+net.__name__+'/ckpt.pth')
+        if not os.path.isdir('checkpoint/'+model_name):
+            os.mkdir('checkpoint/'+model_name)
+        torch.save(state, './checkpoint/'+model_name+'/ckpt.pth')
         best_acc = acc
         print('Saving success!')
 
