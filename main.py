@@ -18,6 +18,7 @@ import os
 import argparse
 
 from models import *
+from utils import get_progress_bar, update_progress_bar
 
 # 0. 从 shell 指定参数
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10')
@@ -80,6 +81,10 @@ optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5
 def train(epoch):
     running_loss = 0.0
     net.train()    # 这条代码似乎也不需要...
+    correct = 0
+    total = 0
+    progress_bar_obj = get_progress_bar(len(trainloader))
+    print('Epoch', epoch, 'Train')
     for i, data in enumerate(trainloader, 0):
         # get the inputs; data is a list of [inputs, labels]
         inputs, labels = data
@@ -95,13 +100,18 @@ def train(epoch):
         loss.backward()
         optimizer.step()
 
-        # 打印统计数据 print statistics
-        running_loss += loss.item()
-        if i % 2000 == 1999:
-            print('[%d, %5d] loss: %.3f' %
-                  (epoch + 1, i + 1, running_loss / 2000))
-            running_loss = 0.0
+        # 打印统计数据 print statistics  在 batch_size 不为 4 的情况下打印不出计数，改用 kuangliu 的 progress_bar
+        #running_loss += loss.item()
+        # if i % 2000 == 1999:
+        #     print('[%d, %5d] loss: %.3f' %
+        #           (epoch + 1, i + 1, running_loss / 2000))
+        #     running_loss = 0.0
 
+        running_loss += loss.item()
+        _, predicted = outputs.max(1)
+        total += labels.size(0)
+        correct += predicted.eq(labels).sum().item()
+        update_progress_bar(progress_bar_obj, index=i, loss = (running_loss/(i+1)), acc= 100.*(correct / total), c=correct, t= total)
 
 # 5. 测试网络
 def test(epoch):
@@ -111,25 +121,38 @@ def test(epoch):
     # images, labels = dataiter.next()
     # outputs = net(images)
 
-    class_correct = list(0. for i in range(10))
-    class_total = list(0. for i in range(10))
+    # class_correct = list(0. for i in range(10))
+    # class_total = list(0. for i in range(10))
     correct = 0
     total = 0
+    test_loss = 0
+    # progress_bar_obj = get_progress_bar(len(testloader))
     with torch.no_grad():
-        for data in testloader:
+        for i, data in enumerate(testloader):
             images, labels = data
             images, labels = images.to(device), labels.to(device)
             outputs = net(images)
-            _, predicted = torch.max(outputs, 1)
-            c = (predicted == labels).squeeze()
-            for i in range(4):
-                label = labels[i]
-                class_correct[label] += c[i].item()
-                class_total[label] += 1
+            loss = criterion(outputs, labels)
 
-        for i in range(10):
-            correct += class_correct[i]
-            total += class_total[i]
+            test_loss += loss.item()
+
+
+            _, predicted = torch.max(outputs, 1)
+            total += labels.size(0)
+            correct += predicted.eq(labels).sum().item()
+
+            # update_progress_bar(progress_bar_obj, index=i, loss=(test_loss / (i + 1)), acc=100. * (correct / total),
+            #                   c=correct, t=total)
+            # c = (predicted == labels).squeeze()
+            # for i in range(4):
+            #     label = labels[i]
+            #     class_correct[label] += c[i].item()
+            #     class_total[label] += 1
+
+        # for i in range(10):
+        #     correct += class_correct[i]
+        #     total += class_total[i]
+
             # 输出每类识别准确率
             # print("Accuracy of %5s : %2d %%" % (
             #     classes[i], 100 * class_correct[i] / class_total[i]))
