@@ -23,4 +23,6 @@ ResNet|50\101|[Deep residual learning for image recognition](http://openaccess.t
 ## 致谢
 
 * [kuangliu/pytorch-cifar](https://github.com/kuangliu/pytorch-cifar)
-* 
+* [pytorch/Deep Learning with PyTorch: A 60 Minute Blitz > Training a Classifier 
+](https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html#sphx-glr-beginner-blitz-cifar10-tutorial-py)
+

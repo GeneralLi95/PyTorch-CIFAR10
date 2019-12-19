@@ -29,6 +29,7 @@ args = parser.parse_args()
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # 1. 载入并标准化 CIFAR10 数据
+# 1. Load and normalizing the CIFAR10 training and test datasets using torchvision
 transform = transforms.Compose(
     [transforms.ToTensor(),
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
@@ -44,6 +45,7 @@ testloader = torch.utils.data.DataLoader(testset, batch_size=128, shuffle=False,
 classes = ('plane','car','bird','cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 # 2. 定义卷积神经网络
+# 2. Define a Convolution Neural Network
 
 net = LeNet()
 #net = VGG('VGG16')
@@ -73,11 +75,14 @@ if args.resume==True:
 
 
 # 3. 定义损失函数和优化器
+# 3. Define a loss function
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
 
 # 4. 训练神经网络
+# 4. Train the network on the training data
+
 def train(epoch):
     running_loss = 0.0
     net.train()    # 这条代码似乎也不需要...
@@ -111,9 +116,12 @@ def train(epoch):
         _, predicted = outputs.max(1)
         total += labels.size(0)
         correct += predicted.eq(labels).sum().item()
-        update_progress_bar(progress_bar_obj, index=i, loss = (running_loss/(i+1)), acc= 100.*(correct / total), c=correct, t= total)
+        update_progress_bar(progress_bar_obj, index=i, loss = (running_loss/(i+1)), acc= 100.*(correct / total),
+                            c=correct, t= total)
 
 # 5. 测试网络
+# 5. Test the network on the test data
+
 def test(epoch):
     global best_acc
     net.eval()  # 这条语句似乎也不需要..
@@ -136,7 +144,6 @@ def test(epoch):
 
             test_loss += loss.item()
 
-
             _, predicted = torch.max(outputs, 1)
             total += labels.size(0)
             correct += predicted.eq(labels).sum().item()
@@ -158,12 +165,13 @@ def test(epoch):
             #     classes[i], 100 * class_correct[i] / class_total[i]))
         acc = 100 * correct / total
         # 输出总准确率
+        print()
         print("Accuracy of whole dataset: %.2f %%" % acc)
 
 
     # save checkpoint
+
     if acc > best_acc:
-        print('Acc > best_acc, Saving net, acc')
         state = {
             'net':net.state_dict(),
             'acc':acc,
@@ -173,10 +181,10 @@ def test(epoch):
             os.mkdir('checkpoint/'+model_name)
         torch.save(state, './checkpoint/'+model_name+'/ckpt.pth')
         best_acc = acc
-        print('Saving success!')
-
+        print('Acc > best_acc, Saving net, acc')
 
 
 for epoch in range(start_epoch, start_epoch+20):
     train(epoch)
     test(epoch)
+
