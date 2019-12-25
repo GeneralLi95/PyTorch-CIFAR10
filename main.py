@@ -22,7 +22,7 @@ from utils import get_progress_bar, update_progress_bar
 
 # 0. 从 shell 指定参数
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10')
-parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
+parser.add_argument('--lr', default=0.001, type=float, help='learning rate')
 parser.add_argument('--resume', '-r', default=False, action='store_true', help='resume from checkpoint')
 args = parser.parse_args()
 
@@ -30,35 +30,44 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # 1. 载入并标准化 CIFAR10 数据
 # 1. Load and normalizing the CIFAR10 training and test datasets using torchvision
-transform = transforms.Compose(
-    [transforms.ToTensor(),
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+# data augmentation 数据增强
+transform_train = transforms.Compose([
+    transforms.RandomCrop(32, padding=4),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+])
 
+transforms_test = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+])
 trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
-                                       download=True, transform=transform)
+                                       download=True, transform=transform_train)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=128, shuffle=True, num_workers=2)
 
 testset = torchvision.datasets.CIFAR10(root='./data', train=False,
-                                      download=True, transform=transform)
-testloader = torch.utils.data.DataLoader(testset, batch_size=128, shuffle=False, num_workers=2)
+                                      download=True, transform=transforms_test)
+testloader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False, num_workers=2)
 
 classes = ('plane','car','bird','cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 # 2. 定义卷积神经网络
 # 2. Define a Convolution Neural Network
 
-net = LeNet()
-#net = VGG('VGG16')
-#net = ResNet18()
+net, model_name = LeNet(), 'LeNet'
+#net, model_name = VGG('VGG16'), 'VGG16'
+#net, model_name = ResNet18(), 'ResNet18'
 
 # 使用GPU时 当经过torch.nn.DataParallel(net)  后  net.__name__会报错， 所以提前指定 model_name代替该值
-model_name = net.__name__
 print(model_name + ' is ready!')
 
 
 # 是否使用 GPU
+net = net.to(device)
 if device == 'cuda':
     net = torch.nn.DataParallel(net)
+    print("Let's use", torch.cuda.device_count(), "GPUs")
     cudnn.benchmark = True
 
 # 从断点继续训练或者重新训练
@@ -184,7 +193,7 @@ def test(epoch):
         print('Acc > best_acc, Saving net, acc')
 
 
-for epoch in range(start_epoch, start_epoch+20):
+for epoch in range(start_epoch, start_epoch+200):
     train(epoch)
     test(epoch)
 
