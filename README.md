@@ -3,17 +3,18 @@
 利用 PyTorch 在 CIFAR10 数据集上实现多种神经网络方法。
 
 ## 实验记录:
-**lr = 0.001, batch_size = 128, epoch = 200** 
+**lr = 0.001, batch_size = 128, epoch = 300, GTX 2080 Ti** 
 
  model|best_acc
  ---|---
- LeNet|63.81%|
- VGG11|78.75%|
- VGG13|80.65%|
- VGG16|82.00%|
- ResNet|76.71%
+ LeNet|74.27%|
+ VGG11|88.88%|
+ VGG13|90.98%|
+ VGG16|90.80%|
+ ResNet18|92.19%|
  
- ResNet18|66.25%|78.35%|81.04%|
+ 
+
  
  
  ## 论文链接:
