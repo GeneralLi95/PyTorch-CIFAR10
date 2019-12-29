@@ -1,5 +1,5 @@
 #!usr/bin/env python  
-#-*- coding:utf-8 _*-  
+# -*- coding:utf-8 _*-
 """ 
 @author:yaoli 
 @file: main.py.py 
@@ -26,7 +26,7 @@ parser.add_argument('--lr', default=0.001, type=float, help='learning rate')
 parser.add_argument('--resume', '-r', default=False, action='store_true', help='resume from checkpoint')
 args = parser.parse_args()
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"   # 指定使用的 GPU 编号，0 是 name，不是 number
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # 指定使用的 GPU 编号，0 是 name，不是 number
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # 1. 载入并标准化 CIFAR10 数据
@@ -45,25 +45,27 @@ transforms_test = transforms.Compose([
 ])
 
 trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
-                                       download=True, transform=transform_train)
+                                        download=True, transform=transform_train)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=128, shuffle=True, num_workers=2)
 
 testset = torchvision.datasets.CIFAR10(root='./data', train=False,
-                                      download=True, transform=transforms_test)
+                                       download=True, transform=transforms_test)
 testloader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False, num_workers=2)
 
-classes = ('plane','car','bird','cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 # 2. 定义卷积神经网络
 # 2. Define a Convolution Neural Network
 
-net, model_name = LeNet(), 'LeNet'
-#net, model_name = VGG('VGG16'), 'VGG16'
-#net, model_name = ResNet18(), 'ResNet18'
-
+# net, model_name = LeNet(), 'LeNet'
+# net, model_name = VGG('VGG11'), 'VGG11'
+# net, model_name = VGG('VGG113'), 'VGG13'
+# net, model_name = VGG('VGG16'), 'VGG16'
+# net, model_name = ResNet18(), 'ResNet18'
+# net, model_name = ResNet34(), 'ResNet34'
+net, model_name = ResNet50(), 'ResNet50'
 
 print(model_name + ' is ready!')
-
 
 # 是否使用 GPU
 net = net.to(device)
@@ -76,14 +78,13 @@ if device == 'cuda':
 start_epoch = 0
 best_acc = 0
 
-if args.resume==True:
+if args.resume == True:
     print('==> Resuming from checkpoint..')
-    assert os.path.isdir('checkpoint/'+ model_name), 'Error : no checkpoint directory found!'
-    checkpoint = torch.load('./checkpoint/'+ model_name+'/ckpt.pth')
+    assert os.path.isdir('checkpoint/' + model_name), 'Error : no checkpoint directory found!'
+    checkpoint = torch.load('./checkpoint/' + model_name + '/ckpt.pth')
     net.load_state_dict(checkpoint['net'])
     best_acc = checkpoint['acc']
     start_epoch = checkpoint['epoch'] + 1
-
 
 # 3. 定义损失函数和优化器
 # 3. Define a loss function
@@ -91,12 +92,13 @@ if args.resume==True:
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
 
+
 # 4. 训练神经网络
 # 4. Train the network on the training data
 
 def train(epoch):
     running_loss = 0.0
-    net.train()    # 这条代码似乎也不需要...
+    net.train()  # 这条代码似乎也不需要...
     correct = 0
     total = 0
     progress_bar_obj = get_progress_bar(len(trainloader))
@@ -117,7 +119,7 @@ def train(epoch):
         optimizer.step()
 
         # 打印统计数据 print statistics  在 batch_size 不为 4 的情况下打印不出计数，改用 kuangliu 的 progress_bar
-        #running_loss += loss.item()
+        # running_loss += loss.item()
         # if i % 2000 == 1999:
         #     print('[%d, %5d] loss: %.3f' %
         #           (epoch + 1, i + 1, running_loss / 2000))
@@ -127,8 +129,9 @@ def train(epoch):
         _, predicted = outputs.max(1)
         total += labels.size(0)
         correct += predicted.eq(labels).sum().item()
-        update_progress_bar(progress_bar_obj, index=i, loss = (running_loss/(i+1)), acc= 100.*(correct / total),
-                            c=correct, t= total)
+        update_progress_bar(progress_bar_obj, index=i, loss=(running_loss / (i + 1)), acc=100. * (correct / total),
+                            c=correct, t=total)
+
 
 # 5. 测试网络
 # 5. Test the network on the test data
@@ -167,9 +170,9 @@ def test(epoch):
             #     class_correct[label] += c[i].item()
             #     class_total[label] += 1
 
-        # for i in range(10):
-        #     correct += class_correct[i]
-        #     total += class_total[i]
+            # for i in range(10):
+            #     correct += class_correct[i]
+            #     total += class_total[i]
 
             # 输出每类识别准确率
             # print("Accuracy of %5s : %2d %%" % (
@@ -179,23 +182,21 @@ def test(epoch):
         print()
         print("Accuracy of whole dataset: %.2f %%" % acc)
 
-
     # save checkpoint
 
     if acc > best_acc:
         state = {
-            'net':net.state_dict(),
-            'acc':acc,
-            'epoch':epoch,
+            'net': net.state_dict(),
+            'acc': acc,
+            'epoch': epoch,
         }
-        if not os.path.isdir('checkpoint/'+model_name):
-            os.mkdir('checkpoint/'+model_name)
-        torch.save(state, './checkpoint/'+model_name+'/ckpt.pth')
+        if not os.path.isdir('checkpoint/' + model_name):
+            os.mkdir('checkpoint/' + model_name)
+        torch.save(state, './checkpoint/' + model_name + '/ckpt.pth')
         best_acc = acc
         print('Acc > best_acc, Saving net, acc')
 
 
-for epoch in range(start_epoch, start_epoch+200):
+for epoch in range(start_epoch, start_epoch + 200):
     train(epoch)
     test(epoch)
-

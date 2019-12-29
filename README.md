@@ -12,6 +12,10 @@
  VGG13|90.98%|
  VGG16|90.80%|
  ResNet18|92.19%|
+ ResNet34|92.30%
+ ResNet50|
+ ResNet101|
+ 
  
  
 
