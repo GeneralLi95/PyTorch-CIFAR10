@@ -15,7 +15,7 @@
  ResNet34|92.30%
  ResNet50|91.39%
  ResNet101|90.99%
- 
+ ResNet152|90.70%
 
  
  

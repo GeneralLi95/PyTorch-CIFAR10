@@ -63,7 +63,9 @@ classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship'
 # net, model_name = VGG('VGG16'), 'VGG16'
 # net, model_name = ResNet18(), 'ResNet18'
 # net, model_name = ResNet34(), 'ResNet34'
-net, model_name = ResNet50(), 'ResNet50'
+# net, model_name = ResNet50(), 'ResNet50'
+# net, model_name = ResNet101(), 'ResNet101'
+net, model_name = ResNet152(), 'ResNet152'
 
 print(model_name + ' is ready!')
 
